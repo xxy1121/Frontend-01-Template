@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.4.8/dist/g6.min.js"></script>
+</head>
+<body>
+    <div id="container" style="width:100vw;height:100vh;"></div>
+    <script>
+
+const data = {
+  nodes: [],
+  edges: [],
+};
+const globalProperties = [
+    "eval",
+    "isFinite",
+    "isNaN",
+    "parseFloat",
+    "parseInt",
+    "decodeURI",
+    "decodeURIComponent",
+    "encodeURI",
+    "encodeURIComponent",
+    "Array",
+    "Date",
+    "RegExp",
+    "Promise",
+    "Proxy",
+    "Map",
+    "WeakMap",
+    "Set",
+    "WeakSet",
+    "Function",
+    "Boolean",
+    "String",
+    "Number",
+    "Symbol",
+    "Object",
+    "Error",
+    "EvalError",
+    "RangeError",
+    "ReferenceError",
+    "SyntaxError",
+    "TypeError",
+    "URIError",
+    "ArrayBuffer",
+    "SharedArrayBuffer",
+    "DataView",
+    "Float32Array",
+    "Float64Array",
+    "Int8Array",
+    "Int16Array",
+    "Int32Array",
+    "Uint8Array",
+    "Uint16Array",
+    "Uint32Array",
+    "Uint8ClampedArray",
+    "Atomics",
+    "JSON",
+    "Math",
+    "Reflect",
+    "BigInt",
+    "BigInt64Array",
+    "BigUint64Array",
+    "Intl",
+    "WebAssembly"
+    ];
+
+const map = new Map();
+const queue = [];
+let length = 1;
+const head = {
+    id: '1',
+    label: 'Realm中的所有对象'
+}
+data.nodes.push(head)
+
+for (let p of globalProperties) {
+    const node = {
+        id: (++length).toString(),
+        label: p,
+        object: this[p]
+    }
+    queue.push(node)
+    data.nodes.push(node)
+    data.edges.push({
+        source: head.id,
+        target: node.id
+    })
+}
+
+let current;
+while (queue.length) {
+    current = queue.shift();
+    if (map.has(current.object)) {
+        current.label = map.get(current.object) || '';
+        continue
+    };
+    map.set(current.object, current.label);
+
+    let proto = Object.getPrototypeOf(current.object);
+    if (proto) {
+        const node = {
+            id: (++length).toString(),
+            label: '',
+            object: proto
+        };
+        data.nodes.push(node);
+        data.edges.push({
+            source: current.id,
+            target: node.id,
+            data: {
+                amount: '__proto__'
+            }
+        });
+        queue.push(node);
+    }
+
+    for (let p of Object.getOwnPropertyNames(current.object)) {
+        var property = Object.getOwnPropertyDescriptor(current.object, p);
+        
+        if (property.hasOwnProperty("value") && property.value instanceof Object) {
+            if (property.value) {
+                const node = {
+                    id: (++length).toString(),
+                    label: '',
+                    object: property.value
+                }
+                data.nodes.push(node);
+                data.edges.push({
+                    source: current.id,
+                    target: node.id,
+                    data: {
+                        amount: p
+                    }
+                });
+                queue.push(node);
+            }
+             
+        } else {
+            if (property.hasOwnProperty("get")) {
+                if (property.get) {
+                    const node = {
+                        id: (++length).toString(),
+                        label: '',
+                        object: property.get
+                    }
+                    data.nodes.push(node);
+                    data.edges.push({
+                        source: current.id,
+                        target: node.id,
+                        data: {
+                            amount: `${p} getter`,
+                        }
+                    });
+                    queue.push(node)
+                }
+            }
+            if (property.hasOwnProperty("set")) {
+                if (property.set) {
+                    const node = {
+                        id: (++length).toString(),
+                        label: '',
+                        object: property.set
+                    }
+                    data.nodes.push(node);
+                    data.edges.push({
+                        source: current.id,
+                        target: node.id,
+                        data: {
+                            amount: `${p} setter`,
+                        }
+                    });
+                    queue.push(node)
+                }
+            }
+        }
+        
+    }
+}
+console.log(length)
+console.log(map)
+console.log(data)
+
+
+G6.registerNode(
+  'round-rect',
+  {
+    drawShape: function drawShape(cfg, group) {
+      const width = cfg.style.width;
+      const stroke = cfg.style.stroke;
+      const rect = group.addShape('rect', {
+        attrs: {
+          x: -width / 2,
+          y: -15,
+          width,
+          height: 30,
+          radius: 15,
+          stroke,
+          lineWidth: 1.2,
+          fillOpacity: 1,
+        },
+        name: 'rect-shape',
+      });
+    //   group.addShape('circle', {
+    //     attrs: {
+    //       x: -width / 2,
+    //       y: 0,
+    //       r: 3,
+    //       fill: stroke,
+    //     },
+    //     name: 'circle-shape',
+    //   });
+      group.addShape('circle', {
+        attrs: {
+          x: width / 2,
+          y: 0,
+          r: 3,
+          fill: stroke,
+        },
+        name: 'circle-shape2',
+      });
+      return rect;
+    },
+    getAnchorPoints: function getAnchorPoints() {
+      return [
+        [0, 0.5],
+        [1, 0.5],
+      ];
+    },
+    update: function update(cfg, item) {
+      const group = item.getContainer();
+      const children = group.get('children');
+      const node = children[0];
+      const circleLeft = children[1];
+      const circleRight = children[2];
+
+      const stroke = cfg.style.stroke;
+
+      if (stroke) {
+        node.attr('stroke', stroke);
+        circleLeft.attr('fill', stroke);
+        circleRight.attr('fill', stroke);
+      }
+    },
+  },
+  'single-node',
+);
+
+G6.registerEdge('polyline', {
+  itemType: 'edge',
+  draw: function draw(cfg, group) {
+    const startPoint = cfg.startPoint;
+    const endPoint = cfg.endPoint;
+
+    const Ydiff = endPoint.y - startPoint.y;
+
+    const slope = Ydiff !== 0 ? 500 / Math.abs(Ydiff) : 0;
+
+    const cpOffset = 50;
+    const offset = Ydiff < 0 ? cpOffset : -cpOffset;
+
+    const line1EndPoint = {
+      x: startPoint.x + slope,
+      y: endPoint.y + offset,
+    };
+    const line2StartPoint = {
+      x: line1EndPoint.x + cpOffset,
+      y: endPoint.y,
+    };
+
+    // 控制点坐标
+    const controlPoint = {
+      x:
+        ((line1EndPoint.x - startPoint.x) * (endPoint.y - startPoint.y)) /
+          (line1EndPoint.y - startPoint.y) +
+        startPoint.x,
+      y: endPoint.y,
+    };
+
+    let path = [
+      ['M', startPoint.x, startPoint.y],
+      ['L', line1EndPoint.x, line1EndPoint.y],
+      ['Q', controlPoint.x, controlPoint.y, line2StartPoint.x, line2StartPoint.y],
+      ['L', endPoint.x, endPoint.y],
+    ];
+
+    if (Ydiff === 0) {
+      path = [
+        ['M', startPoint.x, startPoint.y],
+        ['L', endPoint.x, endPoint.y],
+      ];
+    }
+
+    const line = group.addShape('path', {
+      attrs: {
+        path,
+        stroke: '#72CC4A',
+        lineWidth: 1.2,
+        endArrow: true,
+      },
+      name: 'path-shape',
+    });
+
+    const labelLeftOffset = 0;
+    const labelTopOffset = 8;
+    // amount
+    const amount = group.addShape('text', {
+      attrs: {
+        text: cfg.data && cfg.data.amount || '',
+        x: line2StartPoint.x + labelLeftOffset,
+        y: endPoint.y - labelTopOffset - 2,
+        fontSize: 14,
+        textAlign: 'left',
+        textBaseline: 'middle',
+        fill: '#000000D9',
+      },
+      name: 'text-shape-amount',
+    });
+    // type
+    // group.addShape('text', {
+    //   attrs: {
+    //     text: cfg.data && cfg.data.type,
+    //     x: line2StartPoint.x + labelLeftOffset,
+    //     y: endPoint.y - labelTopOffset - amount.getBBox().height - 2,
+    //     fontSize: 10,
+    //     textAlign: 'left',
+    //     textBaseline: 'middle',
+    //     fill: '#000000D9',
+    //   },
+    //   name: 'text-shape-type',
+    // });
+    // date
+    // group.addShape('text', {
+    //   attrs: {
+    //     text: cfg.data && cfg.data.date,
+    //     x: line2StartPoint.x + labelLeftOffset,
+    //     y: endPoint.y + labelTopOffset + 4,
+    //     fontSize: 12,
+    //     fontWeight: 300,
+    //     textAlign: 'left',
+    //     textBaseline: 'middle',
+    //     fill: '#000000D9',
+    //   },
+    //   name: 'text-shape-date',
+    // });
+    return line;
+  },
+});
+
+const width = document.getElementById('container').scrollWidth;
+const height = document.getElementById('container').scrollHeight;
+const graph = new G6.Graph({
+  container: 'container',
+  width,
+  height,
+  layout: {
+    type: 'dagre',
+    rankdir: 'LR',
+    nodesep: 30,
+    ranksep: 100,
+  },
+  modes: {
+    default: ['drag-canvas', 'zoom-canvas'],
+  },
+  defaultNode: {
+    type: 'round-rect',
+    labelCfg: {
+      style: {
+        fill: '#000000A6',
+        fontSize: 10,
+      },
+    },
+    style: {
+      stroke: '#72CC4A',
+      width: 100,
+    },
+  },
+  defaultEdge: {
+    type: 'polyline',
+  },
+});
+
+graph.data(data);
+graph.render();
+
+const edges = graph.getEdges();
+edges.forEach(function(edge) {
+  const line = edge.getKeyShape();
+  const stroke = line.attr('stroke');
+  const targetNode = edge.getTarget();
+  targetNode.update({
+    style: {
+      stroke,
+    },
+  });
+});
+graph.paint();
+    </script>
+</body>
+</html>
